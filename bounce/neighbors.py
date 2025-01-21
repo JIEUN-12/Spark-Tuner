@@ -51,7 +51,7 @@ def hamming_neighbors_within_tr(
         x = x.squeeze()
     assert len(x.shape) == 1, "x must be a vector"
     
-    ##########--------JIEUN--------##########
+    ##########--------CUSTOMED--------##########
     discrete_parameter_types = [
         pt for pt in ParameterType if pt != ParameterType.CONTINUOUS and pt != ParameterType.NUMERICAL
     ]

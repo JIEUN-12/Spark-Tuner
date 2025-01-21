@@ -373,7 +373,7 @@ class Bounce:
                         number_of_samples=self.number_initial_points,
                         bins=bins_of_type,
                     )
-                ##########--------JIEUN--------##########
+                ##########--------CUSTOMED--------##########
                 case ParameterType.NUMERICAL:
                     _x_init = sample_numerical(
                         number_of_samples=self.number_initial_points,
@@ -393,7 +393,7 @@ class Bounce:
                     raise ValueError(f"Unknown parameter type {parameter_type}.")
             types_points_and_indices[parameter_type] = (_x_init, indices_of_type)
 
-        ##########--------JIEUN--------##########
+        ##########--------CUSTOMED--------##########
         x_init = construct_mixed_point(
             size=self.number_initial_points,
             binary_indices=types_points_and_indices[ParameterType.BINARY][1],
@@ -519,7 +519,7 @@ class Bounce:
             # TODO don't use elif True here but check for the exact type
             elif True:
                 # Scale the function values
-                ##########--------JIEUN--------##########
+                ##########--------CUSTOMED--------##########
                 ## TODO: Unifying data types; numerical and continuous
                 continuous_type = axus.bins_and_indices_of_type(ParameterType.CONTINUOUS) + \
                                     axus.bins_and_indices_of_type(ParameterType.NUMERICAL) 

@@ -482,7 +482,7 @@ def sample_initial_points_discrete(
         x_cand: the sampled initial points
 
     """
-    ##########--------JIEUN--------##########
+    ##########--------CUSTOMED--------##########
     discrete_parameter_types = [
         pt for pt in ParameterType if pt != ParameterType.CONTINUOUS and pt != ParameterType.NUMERICAL
     ]
