@@ -78,6 +78,7 @@ class PostgresBenchmark(PostgresBench):
         debugging: bool = False,
         quantization_factor: int = None,
         bias_prob_sv: int = None, # biased sampling
+        remote_ip: str = None,
     ):
         '''
             This is for LlamaTune on PostgreSQL
@@ -89,7 +90,7 @@ class PostgresBenchmark(PostgresBench):
         
         assert self.embed_adapter_alias in ['rembo', 'hesbo', 'ddpg', 'none'], "embed_adapter_alias should be defined to 'rembo', 'hesbo', or 'ddpg'."
         
-        super().__init__(workload=workload, debugging=debugging)
+        super().__init__(workload=workload, debugging=debugging, remote_ip=remote_ip)
 
         self.input_space: ConfigurationSpace = self.cs
         
@@ -131,6 +132,10 @@ class PostgresBenchmark(PostgresBench):
                 res_ = self.get_results()
                 res.append(res_)
                 load = False
+                if self.debugging:
+                    logging.info("DEBUGGING MODE, skipping restart postgresql service.")
+                else:
+                    self._restart_postgres()
         else:
             self.apply_and_run_configuration(load)
             res = self.get_results()

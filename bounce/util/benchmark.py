@@ -86,7 +86,7 @@ class ParameterType(Enum):
     ORDINAL = "ordinal"
 
 
-##########--------JIEUN--------##########
+##########--------CUSTOMED--------##########
 ## Add units and items for categorical original data
 @dataclass
 class Parameter:
@@ -191,7 +191,7 @@ class Parameter:
         match self.type:
             case ParameterType.CONTINUOUS:
                 return 1
-            ##########--------JIEUN--------##########
+            ##########--------CUSTOMED--------##########
             case ParameterType.NUMERICAL:
                 return 1
             #########################################

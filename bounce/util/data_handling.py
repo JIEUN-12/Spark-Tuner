@@ -146,7 +146,7 @@ def sample_continuous(
     x_init = sobol.draw(number_of_samples).to(dtype=dtype) * 2 - 1
     return x_init
 
-##########--------JIEUN--------##########
+##########--------CUSTOMED--------##########
 def sample_numerical(
         number_of_samples: int,
         bins: list['Bin'],
@@ -215,7 +215,7 @@ def sample_categorical(
 
     return x_init * 2 - 1
 
-##########--------JIEUN--------##########
+##########--------CUSTOMED--------##########
 ## ADD NUMERICAL VARIABLES ##############
 def construct_mixed_point(
         size: int,

@@ -10,8 +10,7 @@ class SparkTuning(Benchmark):
     def __init__(self, env: SparkEnv):
         self.env = env
         self.n_features = len(self.env.dict_data)
-        logging.info(f"n_features: {self.n_features}")
-        # self.fail_conf_flag = False        
+        logging.info(f"n_features: {self.n_features}")    
 
         self.config_path = self.env.config_path
         self.dict_data = self.env.dict_data
@@ -157,43 +156,3 @@ class SparkTuning(Benchmark):
             logging.info(f"👌 Results:{res}   MEAN: {mean(res)}")
             
         return torch.tensor(res)
-
-    
-# ############ VERSION FOR RECORDING THE MEAN OF REPETITION BENCHAMRKING ############
-#     def __call__(self, x: torch.Tensor) -> torch.Tensor:
-#         """
-#         Minimizing results
-#         Args:
-#             x (torch.Tensor): generated configuration candidates. [num, n_features]
-
-#         Returns:
-#             torch.Tensor: _description_
-            
-#         """
-#         res = []
-#         for x_ in x:
-#             x_ = x_.squeeze()
-        
-#             self.save_configuration_file(x_)
-            
-#             # TODO: Repeat benchmarking to minimise the impact of noise from GCP environments
-#             res_ = []
-#             for _ in range(BENCHMARKING_REPETITION):
-#                 self.apply_and_run_configuration()
-#                 res_.append(self.get_results())
-#             mean_res = mean(res_)
-            
-#             logging.info(f"!!!!!!!!!!!!!!Results:{mean_res:.3f}!!!!!!!!!!!!!!")
-#             res.append(mean_res)
-            
-#             # self.run_benchmark()
-        
-#         return torch.tensor(res)
-        
-#         # res = self.get_results()
-#         # logging.info("########################")
-#         # logging.info(f"##### res: {self.res:.2f} ######")
-#         # logging.info("########################")
-        
-        
-

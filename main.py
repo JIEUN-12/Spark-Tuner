@@ -3,8 +3,6 @@ import logging
 import time
 import os
 
-# import gin
-
 from bounce.bounce import Bounce
 from bounce.util.printing import BColors, BOUNCE_NAME, RANDOM_NAME, NSBO_NAME, HESBO_NAME
 from bounce.spark_benchmark import SparkTuning
@@ -92,23 +90,6 @@ def main():
         default=bp["maximum_number_evaluations_until_input_dim"],
         help='[Bounce] adjusting init sampling sizes until reaching input dimensions'
     )
-    # parser.add_argument(
-    #     "--noise_free",
-    #     action='store_true',
-    #     help='[Noise] If you want to run benchmarking in a noise-free experiment, trigger this'
-    # )
-    # parser.add_argument(
-    #     "--noise_mode",
-    #     type=int,
-    #     choices=[1, 2, 3, 4, 5],
-    #     default=5,
-    #     help='[Noise] Choose noise mode, \
-    #             1: a noisy observation mode, \
-    #             2: a noise-free mode w repeated evaluating, \
-    #             3: a noise-free mode w repeated experiments, \
-    #             4: an adaptive noisy observation mode. \
-    #             5: a noisy observation mode using mean'
-    # )
     parser.add_argument(
         "--noise_threshold",
         type=float,
@@ -156,22 +137,6 @@ def main():
         logging.info("🟥🟧🟨🟩🟦🟪🟦🟩🟨🟧🟥")
         logging.info(args.model_name)
         logging.info("🟥🟧🟨🟩🟦🟪🟦🟩🟨🟧🟥")
-    # elif args.method == 'hesbo':
-    #     logging.info(HESBO_NAME)            
-
-    # parser.add_argument(
-    #     "--gin-files",
-    #     type=str,
-    #     nargs="+",
-    #     default=["configs/my.gin"],
-    #     help="Path to the config file",
-    # )
-    # parser.add_argument(
-    #     "--gin-bindings",
-    #     type=str,
-    #     nargs="+",
-    #     default=[],
-    # )
 
     print_params()
 
@@ -181,9 +146,6 @@ def main():
     for i in vars(args):
         logger.info(f'{i}: {vars(args)[i]}')
     logger.info("*************************************")
-    
-    
-    # gin.parse_config_files_and_bindings(args.gin_files, args.gin_bindings)
 
     env = None
     

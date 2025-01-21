@@ -10,8 +10,7 @@ class PostgresTuning(Benchmark):
     def __init__(self, env: PostgresEnv):
         self.env = env
         self.n_features = len(self.env.dict_data)
-        logging.info(f"n_features: {self.n_features}")
-        # self.fail_conf_flag = False        
+        logging.info(f"n_features: {self.n_features}")    
 
         self.config_path = self.env.config_path
         self.dict_data = self.env.dict_data
@@ -60,42 +59,67 @@ class PostgresTuning(Benchmark):
         Converting x without categorical variables into the PostgreSQL configuration format.
         Categorical variables must be treat different.
         """
-        x_wo_cat = x[:self.categorical_indices[0]]
+        if len(self.categorical_indices):
+            x_wo_cat = x[:self.categorical_indices[0]]
+        else:
+            x_wo_cat = x
+            
         for i in range(len(x_wo_cat)):
             p = self.parameters[i].name
             v = x_wo_cat[i]
             match self.parameters[i].type:
                 case ParameterType.BINARY:
                     v = int(torch.round(v))
+                    if v < float(self.parameters[i].lower_bound):
+                        v = self.parameters[i].lower_bound
+                    elif v > float(self.parameters[i].upper_bound):
+                        v = self.parameters[i].upper_bound
+                    else:
+                        pass
                     v = self.parameters[i].items[v]
                 case ParameterType.CONTINUOUS:
                     v = torch.round(v, decimals=2)
+                    if v < float(self.parameters[i].lower_bound):
+                        v = self.parameters[i].lower_bound
+                    elif v > float(self.parameters[i].upper_bound):
+                        v = self.parameters[i].upper_bound
+                    else:
+                        pass            
                     p_unit = self.parameters[i].unit
                     if p_unit is not None:
                         v = str(v) + p_unit
                 case ParameterType.NUMERICAL:
                     v = int(torch.round(v))
+                    if v < float(self.parameters[i].lower_bound):
+                        v = self.parameters[i].lower_bound
+                    elif v > float(self.parameters[i].upper_bound):
+                        v = self.parameters[i].upper_bound
+                    else:
+                        pass                 
                     p_unit = self.parameters[i].unit
                     if p_unit is not None:
                         v = str(v) + p_unit
             
             f.writelines(f'{p} = {v}\n')
             # logging.info(f'{p}={v}')
-        
+            
         """
         Converting categorical variables in x into the PostgreSQL configuration format.
-        """    
-        start = self.categorical_indices[0]
-        for _ in self.categorical_indices:
-            end = start + self.parameters[_].dims_required
-            one_hot = x[start:end]
-            cat = torch.argmax(one_hot)
-            p = self.parameters[_].name
-            v = self.parameters[_].items[cat]
-            
-            f.writelines(f'{p} = {v}\n')
-            # logging.info(f'{p}={v}')
-            start = end
+        """
+        if len(self.categorical_indices):
+            start = self.categorical_indices[0]
+            for _ in self.categorical_indices:
+                end = start + self.parameters[_].dims_required
+                one_hot = x[start:end]
+                cat = torch.argmax(one_hot)
+                p = self.parameters[_].name
+                v = self.parameters[_].items[cat]
+                
+                f.writelines(f'{p} = {v}\n')
+                # logging.info(f'{p}={v}')
+                start = end
+        else:
+            pass
         
         f.close()
         
@@ -145,6 +169,10 @@ class PostgresTuning(Benchmark):
                     load = False
                     cnt += 1
                     logging.info(f"👌👌 [{cnt}/{len(x)}] Results:{res_:.3f} !!!!!!!!!!!!!!!")
+                    if self.env.debugging:
+                        logging.info("DEBUGGING MODE, skipping restart postgresql service.")
+                    else:
+                        self.env._restart_postgres()
             else:                    
                 self.apply_and_run_configuration(load)
                 res_ = self.get_results()
@@ -157,43 +185,3 @@ class PostgresTuning(Benchmark):
             logging.info(f"👌 Results:{res}   MEAN: {mean(res)}")
             
         return torch.tensor(res).unsqueeze(0)
-
-    
-# ############ VERSION FOR RECORDING THE MEAN OF REPETITION BENCHAMRKING ############
-#     def __call__(self, x: torch.Tensor) -> torch.Tensor:
-#         """
-#         Minimizing results
-#         Args:
-#             x (torch.Tensor): generated configuration candidates. [num, n_features]
-
-#         Returns:
-#             torch.Tensor: _description_
-            
-#         """
-#         res = []
-#         for x_ in x:
-#             x_ = x_.squeeze()
-        
-#             self.save_configuration_file(x_)
-            
-#             # TODO: Repeat benchmarking to minimise the impact of noise from GCP environments
-#             res_ = []
-#             for _ in range(BENCHMARKING_REPETITION):
-#                 self.apply_and_run_configuration()
-#                 res_.append(self.get_results())
-#             mean_res = mean(res_)
-            
-#             logging.info(f"!!!!!!!!!!!!!!Results:{mean_res:.3f}!!!!!!!!!!!!!!")
-#             res.append(mean_res)
-            
-#             # self.run_benchmark()
-        
-#         return torch.tensor(res)
-        
-#         # res = self.get_results()
-#         # logging.info("########################")
-#         # logging.info(f"##### res: {self.res:.2f} ######")
-#         # logging.info("########################")
-        
-        
-

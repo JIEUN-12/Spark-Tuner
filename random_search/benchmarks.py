@@ -19,9 +19,6 @@ class SparkBench(SparkEnv):
         debugging: bool = False,
     ):
         super().__init__(workload=workload, workload_size=workload_size, alter=alter, debugging=debugging)
-        # self.config_path = config_path
-        # csv_data = pd.read_csv(csv_path, index_col=0)
-        # self.dict_data = csv_data.to_dict(orient='index')
         
         self.spark_cs = self._generate_configspace()
         
@@ -88,14 +85,11 @@ class PostgresBench(PostgresEnv):
     def __init__(
         self,
         workload: str = None,
-        # workload_size: str = None,
-        # alter: bool = True,
         debugging: bool = False,
+        remote_ip: str = None,
     ):
-        super().__init__(workload=workload, debugging=debugging)
-        # self.config_path = config_path
-        # csv_data = pd.read_csv(csv_path, index_col=0)
-        # self.dict_data = csv_data.to_dict(orient='index')
+        super().__init__(workload=workload, debugging=debugging, remote_ip=remote_ip)
+
         self.workload_size = None
         self.cs = self._generate_configspace()
         

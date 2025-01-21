@@ -19,8 +19,7 @@ class SparkEnv:
         self.config_path=config_path
         
         csv_data = pd.read_csv(csv_path, index_col=0)
-        ## TODO: nan --> 'blank', modify to process nan values
-        # csv_data = pd.read_csv(csv_path, index_col=0, keep_default_na=False)
+
         self.dict_data = csv_data.to_dict(orient='index')
         
         self.workload = workload if workload is not None else 'join'
@@ -32,24 +31,11 @@ class SparkEnv:
         self.workload_size = workload_size
         
         self.timeout = 1000 if workload_size in ["tiny", "small", "large"] else 2000
-        # self.workloads_size = {
-        #     'aggregation': 'large', #'huge',
-        #     'join': 'huge',
-        #     'scan': 'huge',
-        #     'wordcount': 'large',
-        #     'terasort': 'large',  
-        #     'bayes': 'huge',
-        #     'kmeans': 'large',
-        #     'pagerank': 'large',
-        #     'svm': 'large',
-        #     'nweight': 'small',
-        # }        
         
         self.start_dataproc()
         
         if self.alter:
             self._alter_hibench_configuration(self.workload_size)
-            # self._get_result_from_default_configuration()
         self.fail_conf_flag = False
         
     def _alter_hibench_configuration(self, workload_size=None):
@@ -91,7 +77,6 @@ class SparkEnv:
             duration = report[rand_idx].split()[-3]
             tps = report[rand_idx].split()[-2]
             logging.info(f"DEBUGGING MODE, the recorded results are.. Duration: {duration} s Throughput: {tps} bytes/s")
-            # return float(duration), float(tps)
             return float(duration)
         else:
             return self._get_results()
@@ -111,14 +96,11 @@ class SparkEnv:
         if load:
             start = time.time()
             os.system(f'timeout {self.timeout} ssh {p.MASTER_ADDRESS} "bash --noprofile --norc -c scripts/prepare_wk/load_{self.workload}.sh"')
-            # os.system(f'timeout 1000 ssh {p.MASTER_ADDRESS} "bash --noprofile --norc -c scripts/prepare_wk/load_{self.workload}.sh"')
             end = time.time()
             logging.info(f"[HiBench] data loading (seconds) takes {end - start}")
-        
-        # exit_code = os.system(f'timeout 1000 ssh {p.MASTER_ADDRESS} "bash --noprofile --norc -c scripts/run_wk/run_{self.workload}.sh"')
+
         exit_code = os.system(f'timeout {self.timeout} ssh {p.MASTER_ADDRESS} "bash --noprofile --norc -c scripts/run_wk/run_{self.workload}.sh"')
-        # exit_code = os.system(f'ssh {p.MASTER_ADDRESS} "bash --noprofile --norc -c scripts/run_{self.workload}.sh"')
-        # exit_code = os.system(f'ssh {p.MASTER_ADDRESS} "bash --noprofile --norc -c scripts/run_bayes.sh"')
+
         if exit_code > 0:
             logging.warning("💀Failed benchmarking!!")
             logging.warning("UNVALID CONFIGURATION!!")
@@ -141,7 +123,7 @@ class SparkEnv:
             duration = report[-1].split()[-3]
             tps = report[-1].split()[-2]
         logging.info(f"The recorded results are.. Duration: {duration} s Throughput: {tps} bytes/s")
-        # return float(duration), float(tps)
+
         return float(duration)
     
     # Clear hdfs storages in the remote Spark nodes
@@ -155,32 +137,6 @@ class SparkEnv:
             else:
                 logging.info("🎉Successfully cleaning Spark Storage")
     
-    # # Get the result of default configuration..
-    # def _get_result_from_default_configuration(self): 
-    #     logging.info("💻Benchmarking the default configuration...")
-    #     # This default configuration occurs an error in benchmarking
-    #     self.apply_configuration(config_path=p.SPARK_DEFAULT_CONF_PATH)
-        
-    #     res_ = []
-    #     for _ in range(p.BENCHMARKING_REPETITION):
-    #         self.run_configuration()
-    #         res_.append(self.get_results())
-            
-    #     self.def_res = mean(res_)
-    #     logging.info(f"Default duration (s) is {self.def_res}")
-    
-    # def calculate_improvement_from_default(self, best_fx):
-    #     # default_fx = self._get_result_from_default_configuration()
-    #     default_fx = self.def_res
-    #     if isinstance(best_fx, torch.Tensor):
-    #         best_fx = best_fx.item()
-            
-    #     improve_ratio = round((default_fx - best_fx)/default_fx * 100, 2)
-    #     logging.info("=============================================================")
-    #     logging.info(f"🎯 Improvement rate from default results.. {improve_ratio}%")
-    #     logging.info(f"Default result is {default_fx} and Best result is {best_fx}")
-    #     logging.info("=============================================================")
-        
     def start_dataproc(self):
         if self.debugging:
             logging.info("[Google Cloud Platform|Dataproc] 🛑 Skipping start Spark instances")

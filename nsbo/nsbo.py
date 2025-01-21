@@ -1,6 +1,3 @@
-## Temp Model name: Spark parameter tuning using increasingly high-dimensional combinatorial and continuous embedding with pseudo points
-## incPP?...
-
 import logging
 import lzma
 import os.path
@@ -41,26 +38,20 @@ class NSBO(Bounce):
                  initial_target_dimensionality: int = 5,
                  max_eval: int = 50,
                  max_eval_until_input: int = 45,
-                #  noise_mode: int = 1,
                  noise_threshold: float = 1,
                  acquisition: str = 'ei',
+                 alleviate_budget: bool = False,
                  ):
     
         self.benchmark = benchmark
-        # self.noise_mode = noise_mode
         self.noise_threshold = noise_threshold
         self.acquisition = acquisition
         self.effective = True if self.acquisition == 'aei' else False
-        # self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.alleviate_budget = alleviate_budget
+
         self.device = torch.device("cpu")
                 
         results_dir = 'test_results' if self.benchmark.env.debugging else 'results'
-        
-        # self.gp_mode = gp_mode
-        
-        # if self.noise_free:
-        #     logging.info("⚠️ CAUTION!! This is a noise-free mode!! ⚠️")
-        #     self.gp_mode = 'singletaskgp'
         
         # TODO: after analyzing bins, revise here
         super().__init__(benchmark=self.benchmark, 
@@ -80,6 +71,41 @@ class NSBO(Bounce):
         self.x_repeated = torch.empty(
             0, self.benchmark.representation_dim, dtype=self.dtype, device=self.device
         )
+
+    def _split_budget(self, target_dimensionality: int) -> int:
+        """
+            Calculates the number of evaluations to be used for the split with target_dimensionality.
+
+            Args:
+                target_dimensionality: the target dimensionality of the split
+
+            Returns:
+                the number of evaluations to be used for the split with target_dimensionality
+
+            """        
+        if self.alleviate_budget: ### New version for calculting budgets for target dimensionality d_i
+            total_budget = (
+                self.maximum_number_evaluations_until_input_dim - self.number_initial_points
+            )
+
+            if target_dimensionality >= self.benchmark.dim:
+                return min(
+                    10 * target_dimensionality,
+                    self.maximum_number_evaluations - self._n_evals,
+                )
+            
+            split_budget = round(
+                total_budget *
+                (np.log(target_dimensionality) / np.log(self.number_new_bins_on_split + 1))
+                / (
+                    (self._n_splits + 1) *
+                    (np.log(self.initial_target_dimensionality) / np.log(self.number_new_bins_on_split + 1)) +
+                    (self._n_splits * (self._n_splits + 1)) / 2
+                )
+            )            
+            return split_budget
+        else:
+            return super()._split_budget(target_dimensionality)
 
     def sample_init(self):
         """
@@ -114,7 +140,7 @@ class NSBO(Bounce):
                         bins=bins_of_type,
                         seed=RANDOM_SEED,
                     )
-                ##########--------JIEUN--------##########
+                ##########--------CUSTOMED--------##########
                 case ParameterType.NUMERICAL:
                     _x_init = sample_numerical(
                         number_of_samples=self.number_initial_points,
@@ -132,7 +158,7 @@ class NSBO(Bounce):
                     raise ValueError(f"Unknown parameter type {parameter_type}.")
             types_points_and_indices[parameter_type] = (_x_init, indices_of_type)
 
-        ##########--------JIEUN--------##########
+        ##########--------CUSTOMED--------##########
         x_init = construct_mixed_point(
             size=self.number_initial_points,
             binary_indices=types_points_and_indices[ParameterType.BINARY][1],
@@ -170,11 +196,11 @@ class NSBO(Bounce):
             ub=self.benchmark.ub_vec,
         )
         # print(x_init.shape)
-        print("######################################")
-        print(x_init_up.shape)
-        print(x_init_up[0])
-        print(self.random_embedding.parameters)
-        assert False
+        # print("######################################")
+        # print(x_init_up.shape)
+        # print(x_init_up[0])
+        # print(self.random_embedding.parameters)
+        # assert False
         fx_inits = None
         unique_x_init = None
         
@@ -225,6 +251,11 @@ class NSBO(Bounce):
             std_ = torch.std(fx_)
             
             fx[fx==torch.tensor(10000)] = fx_.max() + std_
+            
+            fx_ = fx[fx != torch.tensor(0)]
+            std_ = torch.std(fx_)
+            
+            fx[fx==torch.tensor(0)] = fx_.min() + std_
             ####################################################          
 
             # normalize data
@@ -546,8 +577,8 @@ class NSBO(Bounce):
         best_x = self.x_up_tr[model.posterior(x_scaled).mean.argmax(), :]
 
         best_ys = self.benchmark(best_x.unsqueeze(0), repeat=BENCHMARKING_REPETITION)
-        best_ys = best_ys.flatten().cpu().numpy()
-
+        best_ys = list(best_ys.flatten().cpu().numpy())
+        best_ys = [_ * -1 if _ < 0 else _ for _ in best_ys]
         # best_ys = []
 
         # for _ in range(BENCHMARKING_REPETITION):

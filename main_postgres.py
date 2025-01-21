@@ -3,7 +3,6 @@ import logging
 import time
 import os
 
-# import gin
 
 from bounce.bounce import Bounce
 from bounce.util.printing import BColors, BOUNCE_NAME, RANDOM_NAME, NSBO_NAME, HESBO_NAME
@@ -27,8 +26,6 @@ DEBUGGING_MODE = False
 def main():
     parser = argparse.ArgumentParser(
         prog=BOUNCE_NAME,
-        description="Bounce: Reliable High-Dimensional Bayesian Optimization Algorithm for Combinatorial and Mixed Spaces",
-        epilog="For more information, please contact the author.",
     )
     parser.add_argument(
         "--model_name",
@@ -56,12 +53,6 @@ def main():
         choices=['ycsb-a', 'ycsb-b'],
         default="join"
     )
-    # parser.add_argument(
-    #     "--workload_size",
-    #     type=str,
-    #     choices=["tiny", "small", "large", "huge", "gigantic"],
-    #     default="large"
-    # )
     parser.add_argument(
         "--bin",
         type=int,
@@ -91,24 +82,7 @@ def main():
         type=int,
         default=bp["maximum_number_evaluations_until_input_dim"],
         help='[Bounce] adjusting init sampling sizes until reaching input dimensions'
-    )
-    # parser.add_argument(
-    #     "--noise_free",
-    #     action='store_true',
-    #     help='[Noise] If you want to run benchmarking in a noise-free experiment, trigger this'
-    # )
-    # parser.add_argument(
-    #     "--noise_mode",
-    #     type=int,
-    #     choices=[1, 2, 3, 4, 5],
-    #     default=5,
-    #     help='[Noise] Choose noise mode, \
-    #             1: a noisy observation mode, \
-    #             2: a noise-free mode w repeated evaluating, \
-    #             3: a noise-free mode w repeated experiments, \
-    #             4: an adaptive noisy observation mode. \
-    #             5: a noisy observation mode using mean'
-    # )
+    )    
     parser.add_argument(
         "--noise_threshold",
         type=float,
@@ -123,6 +97,11 @@ def main():
         help='[Noise] Define which acquisition function is used.'
     )
     parser.add_argument(
+        "--alleviate_budget",
+        action='store_true',
+        help='[NSBO] Using the alleviating version for calculating evaluation budgets for target dimensionality.'
+    )    
+    parser.add_argument(
         "--debugging",
         action='store_true',
         help='[DEBUGGING] If you want to debug the entire code without running benchmarking, trigger this'
@@ -132,6 +111,12 @@ def main():
         type=int,
         default=None,
         help='[LlamaTune] adjusting quantization factor (configuration space bucketization)'
+    )   
+    parser.add_argument(
+        "--remote_ip",
+        type=str,
+        default=None,
+        help='[RemoteServer] Define remote server ip, or using defined parameter on param.py.'
     )   
     # ========================================================
     parser.add_argument(
@@ -162,22 +147,6 @@ def main():
         logging.info("🟥🟧🟨🟩🟦🟪🟦🟩🟨🟧🟥")
         logging.info(args.model_name)
         logging.info("🟥🟧🟨🟩🟦🟪🟦🟩🟨🟧🟥")
-    # elif args.method == 'hesbo':
-    #     logging.info(HESBO_NAME)            
-
-    # parser.add_argument(
-    #     "--gin-files",
-    #     type=str,
-    #     nargs="+",
-    #     default=["configs/my.gin"],
-    #     help="Path to the config file",
-    # )
-    # parser.add_argument(
-    #     "--gin-bindings",
-    #     type=str,
-    #     nargs="+",
-    #     default=[],
-    # )
 
     print_params()
 
@@ -188,8 +157,6 @@ def main():
         logger.info(f'{i}: {vars(args)[i]}')
     logger.info("*************************************")
     
-    
-    # gin.parse_config_files_and_bindings(args.gin_files, args.gin_bindings)
 
     env = None
     
@@ -197,16 +164,16 @@ def main():
         case "bounce":
             env = PostgresEnv(
                 workload=args.workload,
-                # workload_size=args.workload_size,
-                debugging=args.debugging
+                debugging=args.debugging,
+                remote_ip=args.remote_ip,
                 )
             benchmark = PostgresTuning(env=env)
             tuner = Bounce(benchmark=benchmark)
         case "random":            
             benchmark = PostgresBench(
                 workload=args.workload,
-                # workload_size=args.workload_size,
-                debugging=args.debugging
+                debugging=args.debugging,
+                remote_ip=args.remote_ip,
                 )
             tuner = RandomSearch(benchmark=benchmark,
                                  maximum_number_evaluations=args.max_eval,
@@ -214,8 +181,8 @@ def main():
         case "nsbo":
             env = PostgresEnv(
                 workload=args.workload,
-                # workload_size=args.workload_size,
-                debugging=args.debugging
+                debugging=args.debugging,
+                remote_ip=args.remote_ip,
                 )
             benchmark = PostgresTuning(env=env)
             tuner = NSBO(
@@ -225,16 +192,15 @@ def main():
                 n_init=args.n_init,
                 max_eval=args.max_eval,
                 max_eval_until_input=args.max_eval_until_input,
-                # noise_mode=args.noise_mode,
                 noise_threshold=args.noise_threshold,
                 acquisition=args.acquisition,
-            #   gp_mode=args.gp
+                alleviate_budget=args.alleviate_budget,
                 )
         case "smac":
             benchmark = PostgresBenchmark(
                 workload=args.workload,
-                # workload_size=args.workload_size,
                 debugging=args.debugging,
+                remote_ip=args.remote_ip,
                 embed_adapter_alias=args.embedding_method,
                 target_dim=args.target_dim,
                 quantization_factor=args.q_factor,
@@ -246,13 +212,14 @@ def main():
                 is_tps=True,
                 )
         case "bo":
-            benchmark = PostgresBenchmark(workload=args.workload,
-                                #   workload_size=args.workload_size,
-                                  debugging=args.debugging,
-                                  embed_adapter_alias=args.embedding_method,
-                                  target_dim=args.target_dim,
-                                  quantization_factor=args.q_factor,
-                                  )
+            benchmark = PostgresBenchmark(
+                workload=args.workload,
+                debugging=args.debugging,
+                remote_ip=args.remote_ip,
+                embed_adapter_alias=args.embedding_method,
+                target_dim=args.target_dim,
+                quantization_factor=args.q_factor,
+                )
             tuner = Baselines(
                 optimizer_method=args.optimizer_method,
                 embedding_method=args.embedding_method,
@@ -268,15 +235,7 @@ def main():
     
     now = time.time()
     logger.info(f"Total time: {now - then:.2f} seconds")
-    
-    # if env is not None:
-    #     env.clear_spark_storage()
-    #     env.stop_dataproc()
-    # else: 
-    #     # the case for random search module
-    #     benchmark.clear_spark_storage()
-    #     benchmark.stop_dataproc()
-    
+
 
 
 if __name__ == "__main__":
@@ -284,13 +243,7 @@ if __name__ == "__main__":
         main()
     except:
         logger.exception("ERROR!!")
-               
-        # if DEBUGGING_MODE:
-        #     logging.info("Skipping stop GCP instance")    
-        # else:
-            # logging.info("[Google Cloud Platform|Dataproc] ⛔ Stop Spark instances")
-            # from envs.params import GCP_DATAPROC_STOP_COMMAND
-            # os.system(GCP_DATAPROC_STOP_COMMAND)
+
     else:
         logger.handlers.clear()
 
